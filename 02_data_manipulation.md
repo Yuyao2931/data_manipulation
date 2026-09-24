@@ -20,10 +20,6 @@ library(tidyverse)
     ## ✖ dplyr::lag()    masks stats::lag()
     ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
 
-``` r
-library(dplyr)
-```
-
 Import our first dataset.
 
 ``` r
@@ -373,3 +369,120 @@ mutate(pups_df, pd_walk_minus_7 = pd_walk - 7)
     ##  9 #4/2/95/3-3       1       4      13        7       9               2
     ## 10 #2/2/95/3-2       1       4      NA        8      10               3
     ## # ℹ 303 more rows
+
+## `arrange` the data
+
+``` r
+arrange(litters_df, pups_born_alive)
+```
+
+    ## # A tibble: 49 × 8
+    ##    group litter_number gd0_weight gd18_weight gd_of_birth pups_born_alive
+    ##    <chr> <chr>              <dbl>       <dbl>       <dbl>           <dbl>
+    ##  1 Con7  #85                 19.7        34.7          20               3
+    ##  2 Low7  #111                25.5        44.6          20               3
+    ##  3 Low8  #4/84               21.8        35.2          20               4
+    ##  4 Con7  #5/4/2/95/2         28.5        44.1          19               5
+    ##  5 Con8  #2/2/95/2           NA          NA            19               5
+    ##  6 Mod7  #3/82/3-2           28          45.9          20               5
+    ##  7 Mod7  #5/3/83/5-2         22.6        37            19               5
+    ##  8 Mod7  #106                21.7        37.8          20               5
+    ##  9 Con7  #5/5/3/83/3-3       26          41.4          19               6
+    ## 10 Con7  #4/2/95/3-3         NA          NA            20               6
+    ## # ℹ 39 more rows
+    ## # ℹ 2 more variables: pups_dead_birth <dbl>, pups_survive <dbl>
+
+``` r
+arrange(litters_df, desc(pups_born_alive))
+```
+
+    ## # A tibble: 49 × 8
+    ##    group litter_number   gd0_weight gd18_weight gd_of_birth pups_born_alive
+    ##    <chr> <chr>                <dbl>       <dbl>       <dbl>           <dbl>
+    ##  1 Low7  #102                  22.6        43.3          20              11
+    ##  2 Mod8  #5/93                 NA          41.1          20              11
+    ##  3 Con7  #1/5/3/83/3-3/2       NA          NA            20               9
+    ##  4 Con8  #3/83/3-3             NA          NA            20               9
+    ##  5 Con8  #5/4/3/83/3           28          NA            19               9
+    ##  6 Mod7  #103                  21.4        42.1          19               9
+    ##  7 Mod7  #4/2/95/2             23.5        NA            19               9
+    ##  8 Mod7  #8/110/3-2            NA          NA            20               9
+    ##  9 Low7  #107                  22.6        42.4          20               9
+    ## 10 Low7  #98                   23.8        43.8          20               9
+    ## # ℹ 39 more rows
+    ## # ℹ 2 more variables: pups_dead_birth <dbl>, pups_survive <dbl>
+
+## Do multiple steps:
+
+This is bad:
+
+``` r
+#Don't do this
+#litters_df = read.csv(file = "data/FAS_litters.csv",
+#           na = c("","NA", ".")
+#           )
+#litters_rename_df = janitor::clean_names(litters_df)
+#litters_with_gd_df = select(litters_rename_df, goup, starts_with("gd"))
+#litters_no_na_df = drop_na(litters_with_gd_df)
+#litters_wt_gain_df = mutate(litters_no_na_df, wt_gain = gd18_weight - gd0_weight)
+```
+
+This is worse:
+
+…
+
+This is good:
+
+``` r
+litters_df = read.csv(file = "data/FAS_litters.csv", na = c("","NA", ".")) |> #(shift + command + M)
+  janitor::clean_names() |> 
+  select(group, starts_with("gd")) |> 
+  drop_na() |> 
+  mutate(
+    wt_gain = gd18_weight - gd0_weight,
+    group = str_to_lower(group)
+  )
+```
+
+load pups, clean names, drop missing, keep litter numbers and pd
+variables, add pd walk - 7
+
+``` r
+pups_df = read.csv(file = "data/FAS_pups.csv", skip = 3, na = c("","NA", ".")) |> 
+  janitor::clean_names() |> 
+  drop_na() |> 
+  select(litter_number, starts_with("pd")) |> 
+  mutate(pd_walk_minus_7 = pd_walk - 7)
+```
+
+``` r
+litters_df |> 
+  filter(group %in% c("con7", "con8")) |> 
+  lm(gd18_weight ~ gd0_weight, data = _)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = gd18_weight ~ gd0_weight, data = filter(litters_df, 
+    ##     group %in% c("con7", "con8")))
+    ## 
+    ## Coefficients:
+    ## (Intercept)   gd0_weight  
+    ##      14.013        1.049
+
+pipes and viewing
+
+``` r
+litters_df |> 
+  filter(group %in% c("con7", "con8"))# |> 
+```
+
+    ##   group gd0_weight gd18_weight gd_of_birth wt_gain
+    ## 1  con7       19.7        34.7          20    15.0
+    ## 2  con7       27.0        42.0          19    15.0
+    ## 3  con7       26.0        41.4          19    15.4
+    ## 4  con7       28.5        44.1          19    15.6
+
+``` r
+#  view()
+```
